@@ -1,0 +1,18 @@
+# Build output
+.gradle/
+.kotlin/
+build/
+dist/
+
+# Local configuration and secrets (never commit these)
+local.properties
+keystore.properties
+*.jks
+*.keystore
+*.p12
+
+# IDE and OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
