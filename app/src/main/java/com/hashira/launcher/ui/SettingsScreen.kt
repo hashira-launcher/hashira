@@ -48,7 +48,7 @@ import com.hashira.launcher.data.VerticalAlign
 import com.hashira.launcher.data.WallpaperMode
 import kotlin.math.roundToInt
 
-private const val APP_VERSION = "0.7.0"
+private const val APP_VERSION = "v0.0.2"
 
 @Composable
 fun SettingsScreen(vm: LauncherViewModel) {

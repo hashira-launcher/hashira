@@ -67,6 +67,7 @@ import com.hashira.launcher.data.LauncherSettings
 import com.hashira.launcher.data.ProfileInfo
 import com.hashira.launcher.data.ProfileKind
 import java.text.Normalizer
+import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
@@ -179,9 +180,11 @@ internal fun AllAppsOverlay(
     var stripLeft by remember { mutableFloatStateOf(0f) }
     var stripRight by remember { mutableFloatStateOf(0f) }
     var listHeight by remember { mutableFloatStateOf(0f) }
+    var listTop by remember { mutableFloatStateOf(0f) }
     val fingerY = remember { mutableFloatStateOf(Float.NaN) } // NaN = not scrubbing
     var scrubSection by remember { mutableStateOf<String?>(null) }
     var dragY by remember { mutableStateOf<Float?>(null) } // finger resting anywhere (observe only)
+    var scrubDragY by remember { mutableStateOf<Float?>(null) } // a new touch that moved vertically: it scrubs like the first one
     val natural = s.scrubNatural
     val reach = s.scrubReachPct / 100f
 
@@ -196,7 +199,7 @@ internal fun AllAppsOverlay(
             when {
                 searchingNow || stripHeight <= 0f -> null // when the strip is measured it emits again: the first movement is not lost
                 touchY != null -> touchY // over the strip, the finger goes straight to the letter
-                else -> holdY()?.let { y ->
+                else -> (scrubDragY ?: holdY())?.let { y ->
                     // Less travel: the finger covers the whole list moving less, around the center of the strip.
                     // Natural mode: the list follows the finger, so the travel is mirrored.
                     val f = ((y - stripTop) / stripHeight).coerceIn(0f, 1f)
@@ -244,7 +247,7 @@ internal fun AllAppsOverlay(
     LaunchedEffect(model) {
         snapshotFlow {
             val y = dragY
-            if (searchingNow || y == null || touchY != null || holdY() != null || !listState.isScrollInProgress) {
+            if (searchingNow || y == null || touchY != null || scrubDragY != null || holdY() != null || !listState.isScrollInProgress) {
                 null
             } else {
                 val info = listState.layoutInfo
@@ -256,7 +259,7 @@ internal fun AllAppsOverlay(
             if (v != null) {
                 fingerY.floatValue = v.first
                 scrubSection = v.second
-            } else if (touchY == null && holdY() == null) {
+            } else if (touchY == null && scrubDragY == null && holdY() == null) {
                 fingerY.floatValue = Float.NaN
                 scrubSection = null
             }
@@ -276,15 +279,29 @@ internal fun AllAppsOverlay(
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                     dragY = down.position.y
+                    // A touch on the list (not on the strip, not on the search field) that moves vertically scrubs
+                    // the letters by finger height, exactly like the touch that opened the list. A plain tap still opens the app.
+                    val onStrip = down.position.x in stripLeft..stripRight && down.position.y in stripTop..(stripTop + stripHeight)
+                    val canScrub = !searchingNow && !onStrip && down.position.y >= listTop
+                    var scrubbing = false
                     while (true) {
                         val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
                         if (!change.pressed) break
                         dragY = change.position.y
+                        if (canScrub && !scrubbing) {
+                            val d = change.position - down.position
+                            scrubbing = abs(d.y) > viewConfiguration.touchSlop && abs(d.y) >= abs(d.x)
+                        }
+                        if (scrubbing) {
+                            change.consume()
+                            scrubDragY = change.position.y
+                        }
                     }
                     dragY = null
+                    scrubDragY = null
                 }
             }
-            // Dragging anywhere scrolls the list (also outside the rows)
+            // Dragging on the list scrolls it only when it is not a vertical scrub (see above)
             .scrollable(if (searching) resultsState else listState, Orientation.Vertical)
             // Tapping on a gap does not close the list; it only prevents the tap from reaching the home screen below
             .pointerInput(Unit) { detectTapGestures { } }
@@ -303,6 +320,7 @@ internal fun AllAppsOverlay(
                     .onGloballyPositioned {
                         val b = it.boundsInRoot()
                         listHeight = b.height
+                        listTop = b.top
                     }
                     .padding(horizontal = s.edgeMarginDp.dp)
             ) {
