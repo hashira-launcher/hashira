@@ -196,7 +196,7 @@
     <string name="trigger_touch">Touch</string>
     <string name="swipe_opens">Swipe sideways also opens it</string>
     <string name="scrub_natural">List follows the finger when scrubbing</string>
-    <string name="edge_zone">Screen-edge strip that opens the list instantly</string>
+    <string name="edge_zone">Screen-edge strip: opens the list and scrubs the letters</string>
     <string name="scrub_reach">Finger travel to cover the whole list</string>
     <string name="touch_hint">Touch any empty spot with one finger and the list opens at once. Without lifting, slide up and down to move through the letters; lift and it stays open. It works anywhere except on your favorite icons. A long press on empty space does not open settings: use the ··· button, an app menu or the end of the A–Z list. With double tap to lock on, opening needs a very brief hold.</string>
     <string name="icon_tap_margin">Protected zone beside the icons</string>

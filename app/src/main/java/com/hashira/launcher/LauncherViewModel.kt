@@ -12,6 +12,7 @@ import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
+import android.util.Base64
 import android.net.Uri
 import android.os.UserHandle
 import androidx.annotation.StringRes
@@ -58,6 +59,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import org.json.JSONObject
 import java.text.Collator
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -133,6 +135,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _homeTick = MutableStateFlow(0)
     val homeTick: StateFlow<Int> = _homeTick.asStateFlow()
+
+    /** Emitted after a backup restore that needs the location permission (runtime grants are not part of a backup). */
+    private val _locationPermissionRequests = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val locationPermissionRequests: SharedFlow<Unit> = _locationPermissionRequests.asSharedFlow()
 
     private val _messages = MutableSharedFlow<UiMessage>(extraBufferCapacity = 8)
     val messages: SharedFlow<UiMessage> = _messages.asSharedFlow()
@@ -406,12 +412,15 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- backup ----
+    /** Settings + the wallpaper image + the "Frequent" counters, in one JSON file. */
     fun exportSettings(uri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             val ok = runCatching {
-                getApplication<Application>().contentResolver.openOutputStream(uri, "wt")!!.use {
-                    it.write(settingsRepo.exportJson().toByteArray())
-                }
+                val ctx = getApplication<Application>()
+                val root = JSONObject(settingsRepo.exportJson()).put("format", 2).put("usage", usageRepo.exportCounts())
+                val wallpaper = File(ctx.filesDir, WALLPAPER_FILE)
+                if (wallpaper.exists()) root.put("wallpaper", Base64.encodeToString(wallpaper.readBytes(), Base64.NO_WRAP))
+                ctx.contentResolver.openOutputStream(uri, "wt")!!.use { it.write(root.toString(2).toByteArray()) }
             }.isSuccess
             toast(if (ok) R.string.toast_export_ok else R.string.toast_export_failed)
         }
@@ -423,15 +432,34 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 getApplication<Application>().contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }
             }.getOrNull()
             if (text != null && settingsRepo.importJson(text)) {
+                // Older backups (format 1) have neither of these: the current ones are kept.
+                val root = runCatching { JSONObject(text) }.getOrNull()
+                root?.optString("usage")?.takeIf { it.isNotEmpty() && it.length <= MAX_BACKUP_USAGE_CHARS }?.let { usageRepo.importCounts(it) }
+                root?.optString("wallpaper")?.takeIf { it.isNotEmpty() }?.let { restoreWallpaper(it) }
                 iconLoader.clear()
                 clearWeatherIcons()
                 applyWeatherSchedule()
                 refreshWeather(force = true)
+                val s = settings.value
+                if (s.weather.show && s.weatherSource == WeatherSource.DEVICE && !deviceLocation.hasPermission()) {
+                    _locationPermissionRequests.tryEmit(Unit)
+                }
                 toast(R.string.toast_import_ok)
             } else {
                 toast(R.string.toast_import_failed)
             }
         }
+    }
+
+    /** Restores the wallpaper image of a backup, only if it really is a reasonably sized image. */
+    private fun restoreWallpaper(base64: String) {
+        val bytes = runCatching { Base64.decode(base64, Base64.DEFAULT) }.getOrNull() ?: return
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || maxOf(bounds.outWidth, bounds.outHeight) > MAX_WALLPAPER_PX * 2) return
+        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
+        File(getApplication<Application>().filesDir, WALLPAPER_FILE).writeBytes(bytes)
+        _wallpaper.value = bmp.asImageBitmap()
     }
 
     // ---- weather ----
@@ -512,5 +540,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val WALLPAPER_FILE = "wallpaper.jpg"
         const val MAX_WALLPAPER_PX = 2400
+        const val MAX_BACKUP_USAGE_CHARS = 200_000
     }
 }

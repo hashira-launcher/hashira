@@ -6,7 +6,7 @@
 
 [English](README.md) · **Español** · [日本語](README.ja.md)
 
-Un launcher de Android minimalista hecho para GrapheneOS. Kotlin y Jetpack Compose, sin analítica ni servicios de Google. Versión 0.0.3.
+Un launcher de Android minimalista hecho para GrapheneOS. Kotlin y Jetpack Compose, sin analítica ni servicios de Google. Versión 0.0.4.
 
 ## Capturas de pantalla
 
@@ -113,19 +113,19 @@ export HASHIRA_KEY_PASSWORD=...
 Revisa tu configuración, compila el APK firmado, verifica la firma, genera un checksum y crea una etiqueta git local. La versión sale de `hashira.versionName` en `gradle.properties`.
 
 ```
-dist/hashira-0.0.3.apk
-dist/hashira-0.0.3.apk.sha256
+dist/hashira-0.0.4.apk
+dist/hashira-0.0.4.apk.sha256
 ```
 
-Usa `./release.sh --no-tag` para omitir la etiqueta git. Sube la etiqueta con `git push origin v0.0.3` y adjunta los dos archivos a un release de GitHub.
+Usa `./release.sh --no-tag` para omitir la etiqueta git. Sube la etiqueta con `git push origin v0.0.4` y adjunta los dos archivos a un release de GitHub.
 
 Sin configuración de firma, `./gradlew assembleRelease` funciona igual pero produce un APK sin firmar que Android no instalará.
 
 ### Verificar un release descargado
 
 ```sh
-sha256sum -c hashira-0.0.3.apk.sha256
-apksigner verify --print-certs hashira-0.0.3.apk
+sha256sum -c hashira-0.0.4.apk.sha256
+apksigner verify --print-certs hashira-0.0.4.apk
 ```
 
 Compara la huella del certificado con la publicada por los mantenedores.
@@ -133,7 +133,7 @@ Compara la huella del certificado con la publicada por los mantenedores.
 ## Instalar
 
 ```sh
-adb install -r dist/hashira-0.0.3.apk
+adb install -r dist/hashira-0.0.4.apk
 ```
 
 O copia el APK al teléfono y ábrelo desde un gestor de archivos. Después elige hashira como app de inicio: Ajustes → Apps → Apps predeterminadas → App de inicio.

@@ -6,7 +6,7 @@
 
 [English](README.md) · [Español](README.es.md) · **日本語**
 
-GrapheneOS 向けに作られた、ミニマルな Android ランチャーです。Kotlin と Jetpack Compose で作られており、解析ツールも Google サービスも使いません。バージョン 0.0.3。
+GrapheneOS 向けに作られた、ミニマルな Android ランチャーです。Kotlin と Jetpack Compose で作られており、解析ツールも Google サービスも使いません。バージョン 0.0.4。
 
 ## スクリーンショット
 
@@ -113,19 +113,19 @@ export HASHIRA_KEY_PASSWORD=...
 設定を確認し、署名済み APK をビルドして署名を検証し、チェックサムを作成して、ローカルの git タグを作ります。バージョンは `gradle.properties` の `hashira.versionName` から取得されます。
 
 ```
-dist/hashira-0.0.3.apk
-dist/hashira-0.0.3.apk.sha256
+dist/hashira-0.0.4.apk
+dist/hashira-0.0.4.apk.sha256
 ```
 
-git タグを作らない場合は `./release.sh --no-tag` を使います。タグは `git push origin v0.0.3` で送信し、2 つのファイルを GitHub のリリースに添付してください。
+git タグを作らない場合は `./release.sh --no-tag` を使います。タグは `git push origin v0.0.4` で送信し、2 つのファイルを GitHub のリリースに添付してください。
 
 署名設定がなくても `./gradlew assembleRelease` は動作しますが、未署名の APK が作られ、Android にはインストールできません。
 
 ### ダウンロードしたリリースを検証する
 
 ```sh
-sha256sum -c hashira-0.0.3.apk.sha256
-apksigner verify --print-certs hashira-0.0.3.apk
+sha256sum -c hashira-0.0.4.apk.sha256
+apksigner verify --print-certs hashira-0.0.4.apk
 ```
 
 証明書のフィンガープリントを、メンテナーが公開しているものと比較してください。
@@ -133,7 +133,7 @@ apksigner verify --print-certs hashira-0.0.3.apk
 ## インストール
 
 ```sh
-adb install -r dist/hashira-0.0.3.apk
+adb install -r dist/hashira-0.0.4.apk
 ```
 
 または、APK を端末にコピーしてファイルマネージャーから開きます。その後、設定 → アプリ → デフォルトのアプリ → ホームアプリ で hashira を選択します。

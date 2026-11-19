@@ -28,13 +28,22 @@ class UsageRepository(context: Context) {
     @Synchronized
     fun reset() = publish(emptyMap())
 
+    /** Backup: the counters in their stored text form. */
+    fun exportCounts(): String = prefs.getString("counts", "") ?: ""
+
+    /** Restores counters from a backup (ignores malformed lines). */
+    @Synchronized
+    fun importCounts(text: String) = publish(parse(text).filterValues { it > 0 })
+
     private fun publish(m: Map<String, Int>) {
         _counts.value = m
         prefs.edit { putString("counts", m.entries.joinToString("\n") { "${it.key}\t${it.value}" }) }
     }
 
-    private fun read(): Map<String, Int> =
-        (prefs.getString("counts", "") ?: "").split('\n').mapNotNull { line ->
+    private fun read(): Map<String, Int> = parse(prefs.getString("counts", "") ?: "")
+
+    private fun parse(text: String): Map<String, Int> =
+        text.split('\n').mapNotNull { line ->
             val i = line.indexOf('\t')
             val n = if (i > 0) line.substring(i + 1).toIntOrNull() else null
             if (n == null) null else line.substring(0, i) to n

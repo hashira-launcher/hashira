@@ -195,7 +195,7 @@
     <string name="trigger_touch">タッチ</string>
     <string name="swipe_opens">横スワイプでも開く</string>
     <string name="scrub_natural">なぞるとき、リストが指と同じ向きに動く</string>
-    <string name="edge_zone">すぐ開く画面端のゾーン</string>
+    <string name="edge_zone">画面端のゾーン（リストを開く・文字を選ぶ）</string>
     <string name="scrub_reach">リスト全体に必要な指の移動量</string>
     <string name="touch_hint">空いている場所を指 1 本でタッチすると、すぐに一覧が開きます。指を離さずに上下へ動かすと文字を移動でき、離しても開いたままです。お気に入りのアイコン以外ならどこでも使えます。空きスペースの長押しでは設定は開きません。··· ボタン、アプリのメニュー、A–Z 一覧の末尾から開いてください。ダブルタップでロックがオンの場合は、ほんの少しだけ押し続ける必要があります。</string>
     <string name="icon_tap_margin">アイコン横の保護ゾーン</string>

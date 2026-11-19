@@ -1,6 +1,7 @@
 package com.hashira.launcher.ui
 
 import android.app.admin.DevicePolicyManager
+import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +75,13 @@ fun SettingsScreen(vm: LauncherViewModel) {
     }
     val importFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.importSettings(uri)
+    }
+    // The location permission is not part of a backup: after restoring a "phone location" weather, ask for it again.
+    val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) vm.refreshWeather(force = true)
+    }
+    LaunchedEffect(Unit) {
+        vm.locationPermissionRequests.collect { locationPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION) }
     }
 
     Surface(
