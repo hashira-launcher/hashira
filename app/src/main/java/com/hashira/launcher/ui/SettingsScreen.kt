@@ -2,6 +2,7 @@ package com.hashira.launcher.ui
 
 import android.app.admin.DevicePolicyManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -48,7 +49,16 @@ import com.hashira.launcher.data.VerticalAlign
 import com.hashira.launcher.data.WallpaperMode
 import kotlin.math.roundToInt
 
-private const val APP_VERSION = "v0.0.2"
+/** Version name of the installed app, so the footer always matches hashira.versionName in gradle.properties. */
+@Composable
+private fun appVersion(): String {
+    val context = LocalContext.current
+    return remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0)).versionName
+        }.getOrNull().orEmpty()
+    }
+}
 
 @Composable
 fun SettingsScreen(vm: LauncherViewModel) {
@@ -252,7 +262,7 @@ fun SettingsScreen(vm: LauncherViewModel) {
             Text(stringResource(R.string.backup_hint), style = MaterialTheme.typography.bodySmall)
 
             Spacer(Modifier.height(24.dp))
-            Text(stringResource(R.string.footer, APP_VERSION), style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.footer, appVersion()), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

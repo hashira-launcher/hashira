@@ -73,6 +73,7 @@ import kotlin.math.roundToInt
 
 private val STRIP: List<String> = listOf("★") + ('A'..'Z').map { it.toString() } + "#"
 private val LETTER_KEYS: Set<String> = STRIP.drop(1).toSet()
+private const val SCRUB_HOLD_MS = 150L // pause before a slide that turns into letter scrubbing
 private const val PRIVATE_KEY = "private"
 private const val FREQ_KEY = "freq"
 
@@ -279,18 +280,25 @@ internal fun AllAppsOverlay(
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                     dragY = down.position.y
-                    // A touch on the list (not on the strip, not on the search field) that moves vertically scrubs
-                    // the letters by finger height, exactly like the touch that opened the list. A plain tap still opens the app.
+                    // On the list (not on the strip, not on the search field):
+                    // - slide right away: the list scrolls normally.
+                    // - touch, pause a moment, then slide vertically: scrub the letters by finger height,
+                    //   like the touch that opened the list.
+                    // A plain tap still opens the app.
                     val onStrip = down.position.x in stripLeft..stripRight && down.position.y in stripTop..(stripTop + stripHeight)
                     val canScrub = !searchingNow && !onStrip && down.position.y >= listTop
+                    var decided = false
                     var scrubbing = false
                     while (true) {
                         val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
                         if (!change.pressed) break
                         dragY = change.position.y
-                        if (canScrub && !scrubbing) {
+                        if (canScrub && !decided) {
                             val d = change.position - down.position
-                            scrubbing = abs(d.y) > viewConfiguration.touchSlop && abs(d.y) >= abs(d.x)
+                            if (abs(d.y) > viewConfiguration.touchSlop || abs(d.x) > viewConfiguration.touchSlop) {
+                                decided = true // the first real movement decides: scroll or scrub
+                                scrubbing = abs(d.y) >= abs(d.x) && change.uptimeMillis - down.uptimeMillis >= SCRUB_HOLD_MS
+                            }
                         }
                         if (scrubbing) {
                             change.consume()
@@ -301,7 +309,7 @@ internal fun AllAppsOverlay(
                     scrubDragY = null
                 }
             }
-            // Dragging on the list scrolls it only when it is not a vertical scrub (see above)
+            // Dragging on the list scrolls it, except for a slide that turns into scrubbing (see above)
             .scrollable(if (searching) resultsState else listState, Orientation.Vertical)
             // Tapping on a gap does not close the list; it only prevents the tap from reaching the home screen below
             .pointerInput(Unit) { detectTapGestures { } }
